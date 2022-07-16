@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 import { getCategories } from "../../redux/actions/categoryActions";
 import { saveProduct } from "../../redux/actions/productActions";
 import ProductDetail from "./ProductDetail";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 function AddOrUpdateProduct({
   products,
@@ -11,12 +11,14 @@ function AddOrUpdateProduct({
   getProducts,
   getCategories,
   saveProduct,
-  history,
+  navigate,
   ...props
 }) {
+  navigate = useNavigate();
   const [product, setProduct] = useState({
     ...props.product,
   });
+  const [errors, setErrors] = useState({});
   useEffect(() => {
     if (categories.length === 0) {
       getCategories();
@@ -30,12 +32,27 @@ function AddOrUpdateProduct({
       ...previousProduct,
       [name]: name === "categoryId" ? parseInt(value, 10) : value,
     }));
+    validate(name, value);
   }
 
-  function handleSave() {
-    Event.preventDefault();
+  function validate(name, value) {
+    if (name === "productName" && value === "") {
+      setErrors((previousErrors) => ({
+        ...previousErrors,
+        productName: "Ürün ismi olmalıdır",
+      }));
+    } else {
+      setErrors((previousErrors) => ({
+        ...previousErrors,
+        productName: "",
+      }));
+    }
+  }
+
+  function handleSave(event) {
+    event.preventDefault();
     saveProduct(product).then(() => {
-      history.push("/");
+      navigate("/");
     });
   }
 
@@ -45,17 +62,20 @@ function AddOrUpdateProduct({
       categories={categories}
       onChange={handleChange}
       onSave={handleSave}
+      errors={errors}
     />
   );
 }
 
 export function getProductById(products, productId) {
-  let product = products.find((product) => product.id == productId) || null;
+  let product =
+    products.find((product) => product.id === Number(productId)) || null;
   return product;
 }
 
 function MapStateToProps(state) {
   const { productId } = useParams();
+
   const product =
     productId && state.productListReducer.length > 0
       ? getProductById(state.productListReducer, productId)
